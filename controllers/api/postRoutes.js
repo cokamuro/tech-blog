@@ -2,8 +2,58 @@ const router = require('express').Router();
 const { Post } = require('../../models');
 
 //get all posts
+router.get('/', async (req, res) => {
+    try {
+      const postData = await Post.findAll({});
+  
+      const posts = postData.map((post) =>
+        post.get({ plain: true })
+      );
+  
+      req.session.save(() => {
+        // save last action datetime to session?
+        //req.session
+  
+        res.render("handlebarsviewhere", {
+          posts 
+        });
+      });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json(err);
+    }
+  });
 
 //get a specific post
+router.get('/post/:id', async (req, res) => {
+    try {
+      const postData = await Post.findByPk(req.params.id, {
+        include: [
+          {
+            model: Comment,
+            attributes: [
+              "id",
+              "content",
+              "date_created",
+              "user_id",
+            ],
+          },
+        ],
+      });
+  
+      const post = postData.get({ plain: true });
+      res.render("handlebarsviewhere", {
+        post,
+        // We are not incrementing the 'countVisit' session variable here
+        // but simply sending over the current 'countVisit' session variable to be rendered
+        countVisit: req.session.countVisit,
+      });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json(err);
+    }
+  });
+
 
 //create a post
 router.post('/', async (req, res) => {
