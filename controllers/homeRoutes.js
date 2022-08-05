@@ -1,17 +1,19 @@
-const router = require('express').Router();
-const { Post, User } = require('../models');
+const router = require("express").Router();
+const { Post, User, Comment } = require("../models");
+const isAuth = require("../utils/auth");
 
 //login handler
-router.get('/login', (req, res) => {
-    if (req.session.isLoggedIn) {
-        res.redirect('/');
+router.get("/login", (req, res) => {
+    if (req.session.loggedIn) {
+        res.redirect("/");
     } else {
-        res.render('login');
+        res.render("login");
     }
 });
 
 //get all posts
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
+    console.log("get all posts")
     try {
         const postData = await Post.findAll({
             include: [{
@@ -26,7 +28,7 @@ router.get('/', async (req, res) => {
 
         res.render("homepage", {
             posts,
-            isLoggedIn: req.session.isLoggedIn
+            loggedIn: req.session.loggedIn
         });
     } catch (err) {
         console.log(err);
@@ -35,36 +37,36 @@ router.get('/', async (req, res) => {
 });
 
 //get a specific post
-router.get('/post/:id', async (req, res) => {
+router.get("/post/:id", async (req, res) => {
     //check for login
-    if (req.session.isLoggedIn = false) {
-        res.redirect('/login')
+    if (req.session.loggedIn = false) {
+        res.redirect("/login")
     } else {
-
         try {
             const postData = await Post.findByPk(req.params.id, {
                 include: [
                     {
                         model: User,
-                        attributes: "name"
+                        attributes: ["name"]
                     },
                     {
                         model: Comment,
-                        attributes: [
-                            "id",
-                            "content",
-                            "date_created",
-                            "user_id",
-                        ],
+                        include: {
+                            model: User,
+                            attributes: ["name"]
+                        }
                     },
                 ],
             });
 
-            if (postData){
+            if (postData) {
                 const post = postData.get({ plain: true });
-                res.render("full-post", { post });
+                res.render("viewpost", {
+                    post,
+                    loggedIn: req.session.loggedIn
+                });
             } else {
-                res.status(404).json({ message: 'No post found with this id' });
+                res.status(404).json({ message: "No post found with this id" });
             }
         } catch (err) {
             console.log(err);
